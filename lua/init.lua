@@ -1,29 +1,3 @@
-local function visual_selection_range()
-    local _, csrow, cscol, _ = unpack(vim.fn.getpos("'<"))
-    local _, cerow, cecol, _ = unpack(vim.fn.getpos("'>"))
-
-    if csrow < cerow or (csrow == cerow and cscol <= cecol) then
-        return csrow, cscol, cerow, cecol + 1
-    else
-        return cerow, cecol, csrow, cscol + 1
-    end
-end
-
-function script_path()
-   local str = debug.getinfo(2, "S").source:sub(2)
-   return str:match("(.*/)")
-end
-
-local selection_to_string = function(buf)
-    local rowfrom, colfrom, rowto, colto = visual_selection_range()
-
-    local content = vim.api.nvim_buf_get_lines(buf, rowfrom - 1, rowto, false)
-
-    content[1] = content[1]:sub(colfrom);
-    content[#content] = content[#content]:sub(0, colto - 1)
-    return table.concat(content, "\n")
-end
-
 local last_marks_placed = {}
 local bnr = vim.fn.bufnr('%')
 local ns_id = vim.api.nvim_create_namespace('demo')
@@ -49,7 +23,6 @@ local function try_place_on_lines(n, text)
         local remaining_space =  right_text_border - cur_line_length  - offset_from_real_text
 
         if remaining_space < min_remaining_space then
-            print(remaining_space)
             min_remaining_space = remaining_space
         end
     end
@@ -81,47 +54,10 @@ local function try_place_on_lines(n, text)
     last_marks_placed = this_note_marks
     return true
 end
-  
-
-
-
-
-
--- I have a wonderful text, and it is about to complete itself.  
---
---
---
---
---
---
---
-local function file_exists(file)
-  local f = io.open(file, "rb")
-  if f then f:close() end
-  return f ~= nil
-end
-
-local function lines_from(file)
-    if not file_exists(file) then return {} end
-    local lines = {}                 
-    for line in io.lines(file) do 
-        lines[#lines + 1] = line
-    end
-    return lines
-end
-
-
--- Hey, maybe you want to complete me? 
-
-
-
-
-
 
 local function suggest()
-    local cur_path = script_path()
-    local txt = selection_to_string(0)
-    print(txt)
+    local cur_path = require"os-helpers".script_path()
+    local txt = require"selection-helpers".selection_to_string(0)
     local words_to_generate = 100
     local file = cur_path .. '/tmp3.txt'
     local command = string.format(
@@ -133,7 +69,7 @@ local function suggest()
     )
 
     os.execute(command)
-    -- os.execute('sleep 30')
+    os.execute('sleep 30')
 
     --[[ local lines = lines_from(file)
     -- print all line numbers and their contents
@@ -150,7 +86,6 @@ local function suggest()
     for i = 1, 100, 1 do
         curmarks = try_place_on_lines(i, content)
         if curmarks then
-            print("broken", i)
             break
         end
     end

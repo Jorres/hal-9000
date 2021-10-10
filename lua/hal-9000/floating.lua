@@ -12,6 +12,8 @@ local function create_floating_window()
         relative="editor",
         width = width - 4,
         height = height - 4,
+        col = 2,
+        row = 2
     })
 end
 

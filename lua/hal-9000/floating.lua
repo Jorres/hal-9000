@@ -10,10 +10,10 @@ local function create_floating_window()
     buf_h = vim.api.nvim_create_buf(false, true)
     win_id = vim.api.nvim_open_win(buf_h, true, {
         relative="editor",
-        width = width - 4,
-        height = height - 4,
-        col = 2,
-        row = 2
+        width = width - 8,
+        height = height - 8,
+        col = 4,
+        row = 4
     })
 end
 

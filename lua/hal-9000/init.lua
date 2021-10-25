@@ -1,66 +1,65 @@
-local function place(text)
-    local curpos = vim.api.nvim_win_get_cursor(0)
-    local cur_row = curpos[1]
+local model_result_ready = false
+local suggest_win_id = -1
+local suggest_buf_id = -1
+local current_animation_frame = 0
 
-    local win_width = vim.api.nvim_win_get_width(0)
-    local float_window_start = math.ceil(win_width * 0.6)
+local animation_frames = {}
+animation_frames[0] = {"     ", " .   ", "     "}
+animation_frames[1] = {"     ", " ..  ", "     "}
+animation_frames[2] = {"     ", " ... ", "     "}
+print(animation_frames)
 
-    local allowed_window_width = win_width - float_window_start
-
-    require"hal-9000.floating".create_floating_window(text, cur_row, allowed_window_width)
+local function replace_idle_with_results(text)
+    model_result_ready = true
+    require"hal-9000.floating".set_text(text)
 end
 
-local function suggest3() 
-    local stdin = vim.loop.new_pipe(false)
-    local stdout = vim.loop.new_pipe(false)
-    local stderr = vim.loop.new_pipe(false)
+local function loop_waiting_for_model_results() 
+    if not model_result_ready then
+        vim.defer_fn(function()
+            if model_result_ready then
+                return
+            end
+            print(animation_frames)
 
-    print("stdin", stdin)
-    print("stdout", stdout)
-    print("stderr", stderr)
+            for index, value in pairs(animation_frames[math.fmod(current_animation_frame, 3)]) do
+                print(index, value)
+            end
 
-    local handle, pid = vim.loop.spawn("cat", {
-        stdio = {stdin, stdout, stderr}
-    }, function(code, signal) -- on exit
-        print("exit code", code)
-        print("exit signal", signal)
-    end)
+            local lines_in_preloader = vim.api.nvim_buf_line_count(suggest_buf_id)
+            vim.api.nvim_buf_set_lines(suggest_buf_id, 0, lines_in_preloader, true, animation_frames[math.fmod(current_animation_frame, 3)])
+            current_animation_frame = current_animation_frame + 1
+            loop_waiting_for_model_results()
+        end, 100)
+    end
+end
 
-    print("process opened", handle, pid)
+local function setup_animation_window(window_pos, win_width)
+    local start_row = window_pos[1]
+    local start_col = math.ceil(win_width * 0.4)
+    local right_padding = math.ceil(win_width * 0.2)
 
-    vim.loop.read_start(stdout, function(err, data)
-        assert(not err, err)
-        if data then
-            print("stdout chunk", stdout, data)
-        else
-            print("stdout end", stdout)
-        end
-    end)
+    local allowed_window_width = win_width - start_col - right_padding
 
-    vim.loop.read_start(stderr, function(err, data)
-        assert(not err, err)
-        if data then
-            print("stderr chunk", stderr, data)
-        else
-            print("stderr end", stderr)
-        end
-    end)
+    suggest_win_id, suggest_buf_id = require"hal-9000.floating".create_floating_window(
+        "", start_row, start_col, allowed_window_width
+    )
 
-    vim.loop.write(stdin, "Hello World")
+    loop_waiting_for_model_results()
+end
 
-    vim.loop.shutdown(stdin, function()
-        print("stdin shutdown", stdin)
-        vim.loop.close(handle, function()
-            print("process closed", handle, pid)
-        end)
-    end)
+local function clear_windows()
+    require"hal-9000.floating".close_floating_window(suggest_win_id)
 end
 
 local model_result = {}
 local function suggest()
     local cur_path = require"hal-9000.os-helpers".script_path()
     -- local txt = require"hal-9000.selection-helpers".selection_to_string(0)
-    local txt = "I am a text without the shitty characters"
+    local txt = "Hello? Is anyone in there?"
+
+    local window_pos = vim.api.nvim_win_get_cursor(0)
+    local win_width = vim.api.nvim_win_get_width(0)
 
     local words_to_generate = 300
     local pyfolder_path = cur_path .. '../../py'
@@ -71,8 +70,8 @@ local function suggest()
     Handle, Pid = vim.loop.spawn("python3",
     {
         args = {
-            pyfolder_path .. "/generate_text.py", 
-            "\"" .. txt .. "\"", 
+            pyfolder_path .. "/generate_text.py",
+            "\"" .. txt .. "\"",
             words_to_generate
         },
         stdio = {nil, stdout, stderr}
@@ -83,9 +82,16 @@ local function suggest()
             print("process closed", Handle, Pid)
         end)
 
+        print("from model")
         for key, value in pairs(model_result) do
             print(key, value)
         end
+
+        print("model concat", table.concat(model_result, "\n"))
+
+        vim.schedule(function ()
+            replace_idle_with_results(table.concat(model_result, "\n"))
+        end)
     end)
 
     vim.loop.read_start(stdout, function(err, data)
@@ -105,8 +111,11 @@ local function suggest()
             print("stderr end", stderr)
         end
     end)
+
+    setup_animation_window(window_pos, win_width)
 end
 
 return {
     suggest = suggest,
+    clearWindows = clear_windows
 }

@@ -3,23 +3,23 @@ fun! ReloadPlugin()
 endfun
 
 fun! Suggest()
-    call ReloadPlugin()
+    " call ReloadPlugin()
     lua require("hal-9000").suggest()
 endfun
 
-fun! ClearMarks()
-    call ReloadPlugin()
-    lua require("hal-9000").clearMarks()
+fun! ClearWindows()
+    " call ReloadPlugin()
+    lua require("hal-9000").clearWindows()
 endfun
 
-nnoremap txt :call Suggest()<CR>
-nnoremap rmrm :call ClearMarks()<CR>
+nnoremap <leader>hs :call Suggest()<CR>
+nnoremap <leader>hc :call ClearWindows()<CR>
 
 " let g:your_global_var_value = 42
-augroup Suggest
-    autocmd!
-augroup END 
+" augroup Suggest
+"     autocmd!
+" augroup END 
 
-augroup ClearMarks
-    autocmd!
-augroup END 
+" augroup ClearMarks
+"     autocmd!
+" augroup END 

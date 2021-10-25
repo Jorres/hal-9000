@@ -1,4 +1,4 @@
-![HAL-9000](./hal9000.png HAL-9000)
+![HAL-9000](https://github.com/jorres/hal-9000/blob/master/hal9000.png?raw=true)
 
 ## HAL-9000
 

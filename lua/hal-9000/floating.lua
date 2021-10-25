@@ -6,22 +6,23 @@ end
 
 local function set_text(text, buf_id)
     local t = require"hal-9000.algo-helpers".mysplit(text, "\n")
+
     vim.api.nvim_buf_set_lines(buf_id, 0, 0, true, t)
 end
 
-local function create_floating_window(text, row, col, allowed_window_width)
+local function create_floating_window(text, _col, allowed_window_width)
     local window_pad_and_bord = 2
 
     local allowed_str_width = allowed_window_width - 2 * window_pad_and_bord
     local resulting_window_height = (math.ceil(#text / allowed_str_width) + 1) + 2 * window_pad_and_bord
 
     local buf_id = vim.api.nvim_create_buf(false, true)
+    local external_cursor_pos = vim.api.nvim_win_get_cursor(0)
     local win_id = vim.api.nvim_open_win(buf_id, true, {
-        relative="editor",
+        relative="win",
         width = allowed_window_width,
         height = resulting_window_height,
-        col = col,
-        row = row,
+        bufpos = {external_cursor_pos[1], external_cursor_pos[2]},
         style = "minimal",
         border="single"
     })

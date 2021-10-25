@@ -11,13 +11,14 @@ print(animation_frames)
 
 local function replace_idle_with_results(text)
     model_result_ready = true
-    require"hal-9000.floating".set_text(text)
+    require"hal-9000.floating".set_text(text, suggest_buf_id)
 end
 
-local function loop_waiting_for_model_results() 
+local function loop_waiting_for_model_results()
     if not model_result_ready then
         vim.defer_fn(function()
             if model_result_ready then
+                model_result_ready = false
                 return
             end
             print(animation_frames)
@@ -30,19 +31,18 @@ local function loop_waiting_for_model_results()
             vim.api.nvim_buf_set_lines(suggest_buf_id, 0, lines_in_preloader, true, animation_frames[math.fmod(current_animation_frame, 3)])
             current_animation_frame = current_animation_frame + 1
             loop_waiting_for_model_results()
-        end, 100)
+        end, 300)
     end
 end
 
-local function setup_animation_window(window_pos, win_width)
-    local start_row = window_pos[1]
+local function setup_animation_window(win_width)
     local start_col = math.ceil(win_width * 0.4)
     local right_padding = math.ceil(win_width * 0.2)
 
     local allowed_window_width = win_width - start_col - right_padding
 
     suggest_win_id, suggest_buf_id = require"hal-9000.floating".create_floating_window(
-        "", start_row, start_col, allowed_window_width
+        "", start_col, allowed_window_width
     )
 
     loop_waiting_for_model_results()
@@ -58,7 +58,6 @@ local function suggest()
     -- local txt = require"hal-9000.selection-helpers".selection_to_string(0)
     local txt = "Hello? Is anyone in there?"
 
-    local window_pos = vim.api.nvim_win_get_cursor(0)
     local win_width = vim.api.nvim_win_get_width(0)
 
     local words_to_generate = 300
@@ -112,7 +111,7 @@ local function suggest()
         end
     end)
 
-    setup_animation_window(window_pos, win_width)
+    setup_animation_window(win_width)
 end
 
 return {

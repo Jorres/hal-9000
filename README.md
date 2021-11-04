@@ -17,6 +17,10 @@ what way to think further.
 
 This is a **work in progress** integration of computer-assisted thinking into Neovim using HuggingFace Transformers library.
 
+Todo right now:
+replace pipe lua communication with http lua communication
+test conversation integration within an editor
+
 Todo:
 
 - [UI] make idle animation smoother

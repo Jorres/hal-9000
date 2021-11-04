@@ -24,22 +24,6 @@ print(
         num_return_sequences=1
     )[0]['generated_text'])
 
-# SECOND
-
-# from transformers import logging, pipeline, set_seed, Conversation
-
-# conversational_pipeline = pipeline("conversational")
-
-# conversation_1 = Conversation("Going to the movies tonight - any suggestions?")
-# conversation_2 = Conversation("What's the last book you have read?")
-
-# print(conversational_pipeline([conversation_1, conversation_2]))
-
-# conversation_1.add_user_input("Is it an action movie?")
-# conversation_2.add_user_input("What is the genre of this book?")
-
-# print(conversational_pipeline([conversation_1, conversation_2]))
-
 # THIRD
 
 # from transformers import logging, pipeline, set_seed

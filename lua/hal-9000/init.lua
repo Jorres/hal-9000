@@ -1,3 +1,5 @@
+local M = {}
+
 local model_result_ready = false
 local suggest_win_id = -1
 local suggest_buf_id = -1
@@ -14,28 +16,23 @@ local function replace_idle_with_results(text)
     require"hal-9000.floating".set_text(text, suggest_buf_id)
 end
 
-local function loop_waiting_for_model_results()
+M.loop_waiting_for_model_results = function()
     if not model_result_ready then
         vim.defer_fn(function()
             if model_result_ready then
                 model_result_ready = false
                 return
             end
-            print(animation_frames)
-
-            for index, value in pairs(animation_frames[math.fmod(current_animation_frame, 3)]) do
-                print(index, value)
-            end
 
             local lines_in_preloader = vim.api.nvim_buf_line_count(suggest_buf_id)
             vim.api.nvim_buf_set_lines(suggest_buf_id, 0, lines_in_preloader, true, animation_frames[math.fmod(current_animation_frame, 3)])
             current_animation_frame = current_animation_frame + 1
-            loop_waiting_for_model_results()
+            M.loop_waiting_for_model_results()
         end, 300)
     end
 end
 
-local function setup_animation_window(win_width)
+M.setup_animation_window = function(win_width)
     local start_col = math.ceil(win_width * 0.4)
     local right_padding = math.ceil(win_width * 0.2)
 
@@ -45,15 +42,15 @@ local function setup_animation_window(win_width)
         "", start_col, allowed_window_width
     )
 
-    loop_waiting_for_model_results()
+    M.loop_waiting_for_model_results()
 end
 
-local function clear_windows()
+M.clear_windows = function()
     require"hal-9000.floating".close_floating_window(suggest_win_id)
 end
 
 local model_result = {}
-local function suggest()
+M.suggest = function()
     local cur_path = require"hal-9000.os-helpers".script_path()
     -- local txt = require"hal-9000.selection-helpers".selection_to_string(0)
     local txt = "Hello? Is anyone in there?"
@@ -62,6 +59,10 @@ local function suggest()
 
     local words_to_generate = 300
     local pyfolder_path = cur_path .. '../../py'
+
+    local http = require("socket.http")
+    local body, code, headers, status = http.request("https://www.google.com")
+    print(code, status, #body)
 
     local stdout = vim.loop.new_pipe(false)
     local stderr = vim.loop.new_pipe(false)
@@ -111,10 +112,32 @@ local function suggest()
         end
     end)
 
-    setup_animation_window(win_width)
+    M.setup_animation_window(win_width)
 end
 
-return {
-    suggest = suggest,
-    clearWindows = clear_windows
-}
+M.do_talk = function()
+    local txt = "Hello? Is anyone in there?"
+
+    -- This is an external dependency, you need to 
+    -- deal with it somehow if you want to distribute the plugin
+    -- Although 3Gb model is a problem in itself...
+    -- TODO replace this with curl
+    local json = require('cjson')
+
+    local tmp = {}
+    tmp['text'] = txt
+    local data = require"urlencode".encode_url(json.encode(tmp))
+    print(data)
+
+    local http_request = require"http.request"
+    local request = http_request.new_from_uri(string.format(
+        "http://localhost:5000/append-conf?text=%s", 
+        data
+    ))
+
+    local _, stream = assert(request:go())
+    local body = assert(stream:get_body_as_string())
+    print(json.decode(body)['data'])
+end
+
+return M

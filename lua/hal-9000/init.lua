@@ -118,26 +118,38 @@ end
 M.do_talk = function()
     local txt = "Hello? Is anyone in there?"
 
-    -- This is an external dependency, you need to 
-    -- deal with it somehow if you want to distribute the plugin
-    -- Although 3Gb model is a problem in itself...
-    -- TODO replace this with curl
     local json = require('cjson')
 
-    local tmp = {}
-    tmp['text'] = txt
-    local data = require"urlencode".encode_url(json.encode(tmp))
-    print(data)
+    local tmp = { text = txt }
 
-    local http_request = require"http.request"
-    local request = http_request.new_from_uri(string.format(
-        "http://localhost:5000/append-conf?text=%s", 
-        data
-    ))
+    require"plenary.curl".request({
+        method = "post",
+        url = "http://localhost:5000/append-conf",
+        body = json.encode(tmp),
+        headers = {
+            content_type = "application/json",
+        },
+        callback = function(out)
+            print(json.decode(out['body'])['text'])
+        end
+    })
 
-    local _, stream = assert(request:go())
-    local body = assert(stream:get_body_as_string())
-    print(json.decode(body)['data'])
+    -- Okay, you have sorta proof of concept. 
+    -- You need to integrate it with the editor 
+    -- (i'm thinking of reading text between markers @@)
+    -- Think about it though, it would be harmful to have markers 
+    -- person might have two markers on screen, easily.
+    -- and output somewhere else (probably, inside markers or right 
+    -- after initial query, or at the cursor?).
+    --
+    -- You might also try different tastes of conversational models.
+    -- This one looks too human, you need a more formal and robot-like 
+    -- version. 
+    --
+    -- For that, you might want to dive into transformers deeper. First 
+    -- do the course and only then try finishing this plugin.
+    --
+    -- Also, enable loading animation while curl loads :)
 end
 
 return M
